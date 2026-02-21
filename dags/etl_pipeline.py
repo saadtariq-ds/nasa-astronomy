@@ -1,14 +1,14 @@
 import json
 from airflow import DAG
-from airflow.providers.http.operators.http import SimpleHttpOperator
-from airflow.operators.postgre.hooks.postgres import PostgresHook
+from airflow.providers.http.operators.http import HttpOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.decorators import task
-from airflow.utils.dates import days_ago
+from datetime import datetime
 
 ## Define the DAG
 with DAG(
     dag_id='nasa_apod_postgres',
-    start_date=days_ago(1),
+    start_date=datetime(2026, 1, 1),
     schedule='@daily',
     catchup=False
 ) as dag:
@@ -37,12 +37,12 @@ with DAG(
 
     ## Step 2: Extract the NASA API Data (Astronomy Picture of the Day)
     ## https://api.nasa.gov/planetary/apod?api_key=your_api_key
-    extract_apod = SimpleHttpOperator(
+    extract_apod = HttpOperator(
         task_id='extract_apod',
         http_conn_id='nasa_api', # Connection ID defined in Airflow Connections
         endpoint="planetary/apod", # NASA API endpoint for APOD
         method='GET',
-        data={"api_key": "{{ connections.nasa_api.extra_dejson.api_key }}"}, # your API key from Airflow Connections
+        data={"api_key": "{{ conn.nasa_api.extra_dejson.api_key }}"}, # your API key from Airflow Connections
         response_filter=lambda response: response.json() # Parse the JSON response
     )
 
@@ -86,3 +86,7 @@ with DAG(
 
 
     ## Step 6: Define the task dependencies
+    create_table() >> extract_apod
+    api_response = extract_apod.output
+    transformed_data = transform_data(api_response)
+    load_data(transformed_data)
