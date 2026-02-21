@@ -47,9 +47,39 @@ with DAG(
     )
 
     ## Step 3: Transform the data (Pick the required information)
+    @task
+    def transform_data(response):
+        # Extract the relevant fields from the API response
+        apod_data = {
+            'title': response.get('title', ''),
+            'explanation': response.get('explanation', ''),
+            'url': response.get('url', ''),
+            'date': response.get('date', ''),
+            'media_type': response.get('media_type', '')
+        }
+        return apod_data
 
 
     ## Step 4: Load the data into PostgreSQL
+    @task
+    def load_data(apod_data):
+        # Initialize the Postgres hook
+        postgres_hook = PostgresHook(postgres_conn_id='postgres_connection')
+        
+        # Define the SQL command to insert data into the table
+        insert_sql = """
+            INSERT INTO nasa_apod (title, explanation, url, date, media_type)
+            VALUES (%s, %s, %s, %s, %s);
+        """
+        
+        # Execute the SQL command with the transformed data
+        postgres_hook.run(insert_sql, parameters=(
+            apod_data['title'],
+            apod_data['explanation'],
+            apod_data['url'],
+            apod_data['date'],
+            apod_data['media_type']
+        ))
 
 
     ## Step 5: Verify the data
