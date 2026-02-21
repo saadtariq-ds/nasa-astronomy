@@ -14,6 +14,26 @@ with DAG(
 ) as dag:
     
     ## Step 1: Create the table if doesn't exist
+    @task
+    def create_table():
+        # Initialize the Postgres hook
+        postgres_hook = PostgresHook(postgres_conn_id='postgres_connection')
+        
+        # Define the SQL command to create the table
+        create_table_sql = """
+            CREATE TABLE IF NOT EXISTS nasa_apod (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255),
+                explanation TEXT,
+                url TEXT,
+                date DATE,
+                media_type VARCHAR(50)
+
+            );
+        """
+        
+        # Execute the SQL command
+        postgres_hook.run(create_table_sql)
 
 
     ## Step 2: Extract the NASA API Data (Astronomy Picture of the Day)
