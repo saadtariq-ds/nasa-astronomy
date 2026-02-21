@@ -35,9 +35,16 @@ with DAG(
         # Execute the SQL command
         postgres_hook.run(create_table_sql)
 
-
     ## Step 2: Extract the NASA API Data (Astronomy Picture of the Day)
-
+    ## https://api.nasa.gov/planetary/apod?api_key=your_api_key
+    extract_apod = SimpleHttpOperator(
+        task_id='extract_apod',
+        http_conn_id='nasa_api', # Connection ID defined in Airflow Connections
+        endpoint="planetary/apod", # NASA API endpoint for APOD
+        method='GET',
+        data={"api_key": "{{ connections.nasa_api.extra_dejson.api_key }}"}, # your API key from Airflow Connections
+        response_filter=lambda response: response.json() # Parse the JSON response
+    )
 
     ## Step 3: Transform the data (Pick the required information)
 
